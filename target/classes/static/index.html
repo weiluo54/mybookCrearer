@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI网文创作系统</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <h1>📚 AI网文创作系统</h1>
+        <div class="book-selector">
+            <select id="bookSelect" onchange="switchBook(this.value)">
+                <option value="">选择书籍</option>
+            </select>
+            <button onclick="openBookModal()" title="书籍管理">📖 管理</button>
+        </div>
+        <div class="stats">
+            <span>章节: <b id="statChapters">0</b></span>
+            <span>总字数: <b id="statWords">0</b></span>
+            <span>角色: <b id="statCharacters">0</b></span>
+        </div>
+        <div class="header-btns">
+            <button onclick="openWorldBookListModal()">📖 世界书</button>
+            <button onclick="openTemplateModal()">📝 提示词模板</button>
+            <button onclick="openConfigModal()">⚙️ AI配置</button>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <div class="main-container">
+        <!-- 左侧栏 -->
+        <div class="left-panel">
+            <div class="panel-title">
+                📖 章节列表
+                <button onclick="createNewChapter()">+ 新章节</button>
+            </div>
+            <div class="chapter-list" id="chapterList"></div>
+
+<!--            <div class="worldbook-list" id="worldBookList" style="max-height:150px;overflow-y:auto;"></div>-->
+            
+            <div class="panel-title">
+                👥 角色
+                <div>
+                    <button onclick="openCharacterGenerateModal()" style="margin-right:5px;">🤖 AI生成</button>
+                    <button onclick="openCharacterModal()">+ 新角色</button>
+                </div>
+            </div>
+            <div class="character-list" id="characterList"></div>
+        </div>
+
+        <!-- 中间区域 -->
+        <div class="center-panel">
+            <!-- 用户提示栏 -->
+            <div class="prompt-area">
+                <textarea id="userPrompt" placeholder="在这里输入创作要求...&#10;&#10;例如：&#10;- 这一章主角遇到神秘老人&#10;- 获得一本上古功法&#10;- 开始修炼，展现天赋"></textarea>
+                <div class="prompt-actions">
+                    <button class="generate-btn" id="generateBtn" onclick="generateContent()">🚀 生成正文</button>
+                    <select id="templateSelect">
+                        <option value="">选择提示词模板</option>
+                    </select>
+                    <select id="configSelect">
+                        <option value="">选择AI配置</option>
+                    </select>
+                    <label>
+                        <input type="checkbox" id="includeHistory" checked> 包含历史概括
+                    </label>
+                    <label>
+                        <input type="checkbox" id="streamMode" checked> 流式输出
+                    </label>
+                    <button id="stopStreamBtn" onclick="stopStreamGeneration()" style="display:none;">⏹️ 停止生成</button>
+                </div>
+            </div>
+
+            <!-- 正文栏 -->
+            <div class="content-area">
+                <div class="content-header">
+                    <h3 id="currentTitle">请选择或创建章节</h3>
+                    <div>
+                        <span class="word-count">字数: <b id="wordCount">0</b></span>
+                        <button onclick="regenerateContent()" class="btn-secondary">🔄 重新生成</button>
+                        <button onclick="saveContent()" class="btn-primary">💾 保存</button>
+                    </div>
+                </div>
+                <div class="content-body">
+                    <textarea id="contentText" placeholder="正文内容将在这里显示..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧栏 -->
+        <div class="right-panel">
+            <div class="panel-title">
+                📋 章节概括
+                <div>
+                    <button onclick="saveSummary()">💾 保存</button>
+                    <button onclick="openSummaryGenerateModal()">🤖 AI生成</button>
+                </div>
+            </div>
+            <div class="summary-area">
+                <div class="summary-content">
+                    <textarea id="summaryText" placeholder="章节概括将在这里显示...&#10;&#10;选择章节后可编辑概括内容"></textarea>
+                </div>
+            </div>
+            
+            <div class="panel-title">
+                📚 章节汇总
+                <button onclick="openCollectionGenerateModal()">🤖 AI生成</button>
+            </div>
+            <div class="collection-area">
+                <div class="collection-list" id="collectionList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色编辑弹窗 -->
+    <div class="modal" id="characterModal">
+        <div class="modal-content" style="max-width:650px;">
+            <div class="modal-header">
+                <h3 id="characterModalTitle">新建角色</h3>
+                <button class="modal-close" onclick="closeModal('characterModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="characterId">
+                <div class="form-group">
+                    <label>角色名称 *</label>
+                    <input type="text" id="charName" placeholder="输入角色名称">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>角色类型</label>
+                        <select id="charRole">
+                            <option value="">请选择</option>
+                            <option value="主角">主角</option>
+                            <option value="配角">配角</option>
+                            <option value="反派">反派</option>
+                            <option value="龙套">龙套</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>角色性别</label>
+                        <select id="charGender">
+                            <option value="">请选择</option>
+                            <option value="男">男</option>
+                            <option value="女">女</option>
+                            <option value="未知">未知</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>角色关系</label>
+                        <input type="text" id="charRoleRelation" placeholder="如：主角的母亲、反派的助手">
+                    </div>
+                    <div class="form-group">
+                        <label>角色代号</label>
+                        <input type="text" id="charCodeName" placeholder="如：黑衣人、神秘老者">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>角色信息</label>
+                    <textarea id="charInfo" rows="8" placeholder="输入角色的详细信息，包括外貌、性格、背景、能力等..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="charIsMain"> 主要角色
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('characterModal')">取消</button>
+                <button class="btn-primary" onclick="saveCharacter()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI配置弹窗 -->
+    <div class="modal" id="configModal">
+        <div class="modal-content" style="max-width:800px;">
+            <div class="modal-header">
+                <h3>AI配置管理</h3>
+                <button class="modal-close" onclick="closeModal('configModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 配置列表 -->
+                <div class="config-list-section" id="configListSection">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h4 style="color:var(--accent-primary);margin:0;">已有配置</h4>
+                        <button class="btn-primary" onclick="showConfigForm()" style="padding:6px 12px;font-size:13px;">+ 新建配置</button>
+                    </div>
+                    <div id="configListContainer" style="max-height:400px;overflow-y:auto;"></div>
+                </div>
+                <!-- 配置表单 -->
+                <div class="config-form-section" id="configFormSection" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h4 id="configFormTitle" style="color:var(--accent-primary);margin:0;">新建配置</h4>
+                        <button class="btn-secondary" onclick="showConfigList()" style="padding:6px 12px;font-size:13px;">← 返回列表</button>
+                    </div>
+                    <input type="hidden" id="configId">
+                    <div class="form-group">
+                        <label>配置名称 *</label>
+                        <input type="text" id="configName" placeholder="例如：GPT-4配置">
+                    </div>
+                    <div class="form-group">
+                        <label>API地址 *</label>
+                        <input type="text" id="configApiUrl" value="https://api.openai.com/v1/chat/completions">
+                    </div>
+                    <div class="form-group">
+                        <label>API密钥 *</label>
+                        <input type="password" id="configApiKey" placeholder="输入您的API密钥">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>模型名称</label>
+                            <input type="text" id="configModel" value="gpt-3.5-turbo">
+                        </div>
+                        <div class="form-group">
+                            <label>最大Token</label>
+                            <input type="number" id="configMaxTokens" value="4096">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>温度 (0-2)</label>
+                            <input type="number" id="configTemperature" value="0.7" step="0.1" min="0" max="2">
+                        </div>
+                        <div class="form-group">
+                            <label>Top P (0-1)</label>
+                            <input type="number" id="configTopP" value="0.9" step="0.1" min="0" max="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="configIsDefault"> 设为默认配置
+                        </label>
+                    </div>
+                    <div class="modal-footer" style="padding:0;border:none;margin-top:20px;">
+                        <button class="btn-secondary" onclick="testAIConnection()">测试连接</button>
+                        <button class="btn-secondary" onclick="showConfigList()">取消</button>
+                        <button class="btn-primary" onclick="saveConfig()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示词模板弹窗 -->
+    <div class="modal" id="templateModal">
+        <div class="modal-content" style="max-width:900px;">
+            <div class="modal-header">
+                <h3>提示词模板管理</h3>
+                <button class="modal-close" onclick="closeModal('templateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 模板列表 -->
+                <div class="template-list-section" id="templateListSection">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h4 style="color:var(--accent-primary);margin:0;">已有模板</h4>
+                        <button class="btn-primary" onclick="showTemplateForm()" style="padding:6px 12px;font-size:13px;">+ 新建模板</button>
+                    </div>
+                    <div id="templateListContainer" style="max-height:450px;overflow-y:auto;"></div>
+                </div>
+                <!-- 模板表单 -->
+                <div class="template-form-section" id="templateFormSection" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h4 id="templateFormTitle" style="color:var(--accent-primary);margin:0;">新建模板</h4>
+                        <button class="btn-secondary" onclick="showTemplateList()" style="padding:6px 12px;font-size:13px;">← 返回列表</button>
+                    </div>
+                    <input type="hidden" id="templateId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>模板名称 *</label>
+                            <input type="text" id="templateName" placeholder="例如：玄幻小说模板">
+                        </div>
+                        <div class="form-group">
+                            <label>模板类型 *</label>
+                            <select id="templateType">
+                                <option value="CONTENT">正文生成</option>
+                                <option value="SUMMARY">章节概括</option>
+                                <option value="COLLECTION">章节汇总</option>
+                                <option value="CHARACTER">角色生成</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>系统提示词 (System Prompt) <span class="help-icon" onclick="showVariableHelp('template')" title="查看可用变量">?</span></label>
+                        <textarea id="templateSystem" rows="5" placeholder="设定AI的角色和输出格式..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>用户提示词模板 <span class="help-icon" onclick="showVariableHelp('template')" title="查看可用变量">?</span></label>
+                        <textarea id="templatePrompt" rows="8" placeholder="支持变量: {{userPrompt}}, {{characters}}, {{prevSummary}}, {{title}}, {{content}}"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="templateIsDefault"> 设为默认模板
+                        </label>
+                    </div>
+                    <div class="modal-footer" style="padding:0;border:none;margin-top:20px;">
+                        <button class="btn-secondary" onclick="showTemplateList()">取消</button>
+                        <button class="btn-primary" onclick="saveTemplate()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 汇总详情弹窗 -->
+    <div class="modal" id="collectionDetailModal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h3 id="collectionDetailTitle">汇总详情</h3>
+                <button class="modal-close" onclick="closeModal('collectionDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="collectionDetailId">
+                <div class="form-group">
+                    <label>汇总标题</label>
+                    <input type="text" id="collectionDetailTitleInput" placeholder="输入汇总标题">
+                </div>
+                <div class="form-group">
+                    <label>汇总内容</label>
+                    <textarea id="collectionDetailContent" rows="15" style="min-height:300px;line-height:1.8;" placeholder="汇总内容..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="deleteCollection()">🗑️ 删除</button>
+                <button class="btn-secondary" onclick="closeModal('collectionDetailModal')">取消</button>
+                <button class="btn-primary" onclick="saveCollection()">💾 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 章节概括生成弹窗 -->
+    <div class="modal" id="summaryGenerateModal">
+        <div class="modal-content" style="max-width:650px;max-height:90vh;overflow-y:auto;">
+            <div class="modal-header">
+                <h3>🤖 AI生成章节概括</h3>
+                <button class="modal-close" onclick="closeModal('summaryGenerateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>选择提示词模板</label>
+                    <select id="summaryTemplateSelect">
+                        <option value="">使用默认模板</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>选择AI配置</label>
+                    <select id="summaryConfigSelect">
+                        <option value="">使用默认配置</option>
+                    </select>
+                </div>
+                <div style="background:var(--bg-tertiary);padding:10px;border-radius:4px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:var(--text-muted);font-size:12px;">编写模板时可使用预设变量</span>
+                    <span class="help-icon" onclick="showVariableHelp('summary')" title="查看可用变量">?</span>
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <label>生成结果
+                        <label style="margin-left:20px;">
+                            <input type="checkbox" id="summaryStreamMode" checked> 流式输出
+                        </label>
+                        <button id="summaryStopStreamBtn" onclick="stopSummaryStream()" style="display:none;margin-left:10px;">⏹️ 停止生成</button>
+                    </label>
+                    <textarea id="summaryGenerateOutput" rows="6" style="background:var(--bg-tertiary);border:1px solid var(--border-color);padding:10px;border-radius:4px;font-size:12px;line-height:1.6;" readonly placeholder="AI生成的章节概括将在此显示..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('summaryGenerateModal')">关闭</button>
+                <button class="btn-primary" id="summaryGenerateBtn" onclick="doGenerateSummary()">🚀 开始生成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 章节汇总生成弹窗 -->
+    <div class="modal" id="collectionGenerateModal">
+        <div class="modal-content" style="max-width:700px;max-height:90vh;overflow-y:auto;">
+            <div class="modal-header">
+                <h3>🤖 AI生成章节汇总</h3>
+                <button class="modal-close" onclick="closeModal('collectionGenerateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>选择要汇总的章节 <span style="color:var(--accent-primary);font-size:12px;">(可多选，按章节顺序拼接)</span></label>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <button type="button" onclick="selectAllChaptersForCollection()" class="btn-primary" style="padding:5px 10px;font-size:12px;">全选</button>
+                        <button type="button" onclick="deselectAllChaptersForCollection()" class="btn-secondary" style="padding:5px 10px;font-size:12px;">取消全选</button>
+                        <span id="selectedChapterCount" style="color:var(--text-muted);font-size:12px;line-height:28px;">已选择 0 章</span>
+                    </div>
+                    <div id="collectionChapterList" style="max-height:200px;overflow-y:auto;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:4px;padding:10px;"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>选择提示词模板</label>
+                        <select id="collectionTemplateSelect">
+                            <option value="">使用默认模板</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>选择AI配置</label>
+                        <select id="collectionConfigSelect">
+                            <option value="">使用默认配置</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="background:var(--bg-tertiary);padding:10px;border-radius:4px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:var(--text-muted);font-size:12px;">编写模板时可使用预设变量</span>
+                    <span class="help-icon" onclick="showVariableHelp('collection')" title="查看可用变量">?</span>
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <label>生成结果
+                        <label style="margin-left:20px;">
+                            <input type="checkbox" id="collectionStreamMode" checked> 流式输出
+                        </label>
+                        <button id="collectionStopStreamBtn" onclick="stopCollectionStream()" style="display:none;margin-left:10px;">⏹️ 停止生成</button>
+                    </label>
+                    <textarea id="collectionGenerateOutput" rows="8" style="background:var(--bg-tertiary);border:1px solid var(--border-color);padding:10px;border-radius:4px;font-size:12px;line-height:1.6;" readonly placeholder="AI生成的章节汇总将在此显示..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('collectionGenerateModal')">关闭</button>
+                <button class="btn-primary" id="collectionGenerateBtn" onclick="doGenerateCollection()">🚀 开始生成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色AI生成弹窗 -->
+    <div class="modal" id="characterGenerateModal">
+        <div class="modal-content" style="max-width:650px;max-height:90vh;overflow-y:auto;">
+            <div class="modal-header">
+                <h3 id="characterGenerateTitle">🤖 AI生成角色信息</h3>
+                <button class="modal-close" onclick="closeModal('characterGenerateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="generateCharacterId">
+                <div class="form-group">
+                    <label>角色描述/需求 *</label>
+                    <textarea id="characterGeneratePrompt" rows="4" placeholder="描述你想要的角色，例如：&#10;- 一个神秘的老人，拥有强大的修为&#10;- 性格古怪，喜欢考验年轻人&#10;- 曾经是天下第一强者"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>选择提示词模板</label>
+                        <select id="characterTemplateSelect">
+                            <option value="">使用默认模板</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>选择AI配置</label>
+                        <select id="characterConfigSelect">
+                            <option value="">使用默认配置</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="background:var(--bg-tertiary);padding:10px;border-radius:4px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="color:var(--text-muted);font-size:12px;">编写模板时可使用预设变量</span>
+                    <span class="help-icon" onclick="showVariableHelp('character')" title="查看可用变量">?</span>
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <label>生成结果
+                        <label style="margin-left:20px;">
+                            <input type="checkbox" id="characterStreamMode" checked> 流式输出
+                        </label>
+                        <button id="characterStopStreamBtn" onclick="stopCharacterStream()" style="display:none;margin-left:10px;">⏹️ 停止生成</button>
+                    </label>
+                    <textarea id="characterGenerateOutput" rows="6" style="background:var(--bg-tertiary);border:1px solid var(--border-color);padding:10px;border-radius:4px;font-size:12px;line-height:1.6;" readonly placeholder="AI生成的角色信息将在此显示..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('characterGenerateModal')">关闭</button>
+                <button class="btn-primary" id="characterGenerateBtn" onclick="doGenerateCharacter()">🚀 开始生成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 变量帮助弹框 -->
+    <div class="modal variable-help-modal" id="variableHelpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="variableHelpTitle">📋 可用变量列表</h3>
+                <button class="modal-close" onclick="closeModal('variableHelpModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:var(--text-muted);font-size:13px;margin-bottom:15px;">点击「复制」按钮将变量复制到剪贴板，然后粘贴到提示词模板中使用。</p>
+                <div class="variable-list" id="variableListContainer">
+                    <!-- 变量列表动态生成 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('variableHelpModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 书籍管理弹窗 -->
+    <div class="modal" id="bookModal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h3>📖 书籍管理</h3>
+                <button class="modal-close" onclick="closeModal('bookModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 书籍列表 -->
+                <div class="book-list-section" id="bookListSection">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h4 style="color:var(--accent-primary);margin:0;">我的书籍</h4>
+                        <button class="btn-primary" onclick="showBookForm()" style="padding:6px 12px;font-size:13px;">+ 新建书籍</button>
+                    </div>
+                    <div id="bookListContainer" style="max-height:400px;overflow-y:auto;"></div>
+                </div>
+                <!-- 书籍表单 -->
+                <div class="book-form-section" id="bookFormSection" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                        <h4 id="bookFormTitle" style="color:var(--accent-primary);margin:0;">新建书籍</h4>
+                        <button class="btn-secondary" onclick="showBookList()" style="padding:6px 12px;font-size:13px;">← 返回列表</button>
+                    </div>
+                    <input type="hidden" id="bookId">
+                    <div class="form-group">
+                        <label>书籍名称 *</label>
+                        <input type="text" id="bookName" placeholder="输入书籍名称">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>作者</label>
+                            <input type="text" id="bookAuthor" placeholder="作者名称">
+                        </div>
+                        <div class="form-group">
+                            <label>类型/分类</label>
+                            <input type="text" id="bookGenre" placeholder="例如：玄幻、都市、科幻">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>书籍简介</label>
+                        <textarea id="bookDescription" rows="4" placeholder="输入书籍简介..."></textarea>
+                    </div>
+                    <div class="modal-footer" style="padding:0;border:none;margin-top:20px;">
+                        <button class="btn-secondary" onclick="showBookList()">取消</button>
+                        <button class="btn-primary" onclick="saveBook()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 世界书管理弹窗 -->
+    <div class="modal" id="worldBookListModal">
+        <div class="modal-content" style="max-width:800px;">
+            <div class="modal-header">
+                <h3>📖 世界书管理</h3>
+                <button class="modal-close" onclick="closeModal('worldBookListModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                    <h4 style="color:var(--accent-primary);margin:0;">世界书条目列表</h4>
+                    <button class="btn-primary" onclick="openWorldBookModal()" style="padding:6px 12px;font-size:13px;">+ 新建条目</button>
+                </div>
+                <div id="worldBookListContainer" style="max-height:500px;overflow-y:auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 世界书编辑弹窗 -->
+    <div class="modal" id="worldBookModal">
+        <div class="modal-content" style="max-width:650px;">
+            <div class="modal-header">
+                <h3 id="worldBookModalTitle">新建世界书条目</h3>
+                <button class="modal-close" onclick="closeWorldBookEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="worldBookId">
+                <div class="form-group">
+                    <label>触发词/标题 * <span style="color:var(--text-muted);font-size:11px;">(当用户提示词包含此词时触发)</span></label>
+                    <input type="text" id="worldBookTitle" placeholder="如：东灵山、九阳真经、魔界">
+                </div>
+                <div class="form-group">
+                    <label>世界书内容 * <span style="color:var(--text-muted);font-size:11px;">(匹配到时将附加到提示词中)</span></label>
+                    <textarea id="worldBookContent" rows="10" placeholder="输入该设定的详细描述...&#10;&#10;例如：东灵山是修真界四大圣地之一，位于东海之滨，山高万丈，云雾缭绕。山中灵气充沛，有无数珍稀灵药，门下弟子众多，以剑修著称..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="worldBookSortOrder" value="0" placeholder="数字越小越靠前">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <label style="display:block;margin-top:8px;">
+                            <input type="checkbox" id="worldBookIsActive" checked> 启用此条目
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="deleteWorldBook()" id="deleteWorldBookBtn" style="display:none;">🗑️ 删除</button>
+                <button class="btn-secondary" onclick="closeModal('worldBookModal')">取消</button>
+                <button class="btn-primary" onclick="saveWorldBook()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">AI正在创作中，请稍候...</div>
+    </div>
+
+    <!-- 引入外部JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>

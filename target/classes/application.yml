@@ -1,0 +1,71 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  application:
+    name: novel-creator
+  
+  # H2 Database Configuration
+  datasource:
+    url: jdbc:h2:file:./data/noveldb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+#      ddl-auto: create-drop
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  
+  # H2 Console (for debugging)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+
+  # File encoding
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  # Output configuration
+  output:
+    ansi:
+      enabled: always
+  # Main configuration
+  main:
+    banner-mode: console
+
+# AI Configuration Defaults
+ai:
+  default:
+    api-url: https://api.openai.com/v1/chat/completions
+    api-key: your-api-key-here
+    model: gpt-3.5-turbo
+    temperature: 0.7
+    top-p: 0.9
+    max-tokens: 4096
+    timeout: 1200
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.novel: DEBUG
+    org.hibernate.SQL: WARN
+  config: classpath:logback.xml
+
+
