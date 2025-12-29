@@ -111,19 +111,23 @@ public class AIConfig {
     private LocalDateTime updateTime;
 
     /**
+     * 是否只更新默认值字段
+     */
+    private Boolean doSetDefaultOpt;
+    /**
      * 无参构造函数，设置默认值
      */
     public AIConfig() {
-        this.apiUrl = "https://api.openai.com/v1/chat/completions";
-        this.model = "gpt-3.5-turbo";
-        this.temperature = 0.7;
-        this.topP = 0.9;
-        this.maxTokens = 4096;
-        this.timeout = 1200;
-        this.frequencyPenalty = 0.0;
-        this.presencePenalty = 0.0;
-        this.isDefault = false;
-        this.isActive = true;
+        this.apiUrl = null;
+        this.model = null;
+        this.temperature = null;
+        this.topP = null;
+        this.maxTokens = null;
+        this.timeout = 12000;
+        this.frequencyPenalty =null;
+        this.presencePenalty = null;
+        this.isDefault = null;
+        this.isActive = null;
         this.createTime = LocalDateTime.now();
         this.updateTime = LocalDateTime.now();
     }

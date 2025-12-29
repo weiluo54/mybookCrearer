@@ -355,7 +355,8 @@ public class NovelController {
     public ApiResponse<SummaryCollection> generateCollection(
             @RequestParam(required = false) Long templateId,
             @RequestParam(required = false) Long configId,
-            @RequestParam(required = false) String chapterIds) {
+            @RequestParam(required = false) String chapterIds,
+            @RequestParam(required = false) Long bookId) {
         try {
             String collectionContent;
             String chapterRange;
@@ -382,7 +383,7 @@ public class NovelController {
             }
             
             SummaryCollection collection = summaryCollectionService.createCollection(
-                "剧情汇总", collectionContent, chapterRange
+                "剧情汇总", collectionContent, chapterRange,bookId
             );
             return ApiResponse.success("汇总生成成功", collection);
         } catch (Exception e) {
@@ -440,9 +441,10 @@ public class NovelController {
             @PathVariable Long id,
             @RequestParam(required = false) String userPrompt,
             @RequestParam(required = false) Long templateId,
-            @RequestParam(required = false) Long configId) {
+            @RequestParam(required = false) Long configId,
+            @RequestParam(required = false) Long bookId) {
         try {
-            String result = aiService.generateCharacterInfo(id, userPrompt, templateId, configId);
+            String result = aiService.generateCharacterInfo(id, userPrompt, templateId, configId,bookId);
             return ApiResponse.success("角色信息生成成功", result);
         } catch (Exception e) {
             logger.error("生成角色信息失败", e);
@@ -457,9 +459,10 @@ public class NovelController {
     public ApiResponse<String> generateNewCharacter(
             @RequestParam String userPrompt,
             @RequestParam(required = false) Long templateId,
-            @RequestParam(required = false) Long configId) {
+            @RequestParam(required = false) Long configId,
+            @RequestParam(required = false) Long bookId) {
         try {
-            String result = aiService.generateCharacterInfo(null, userPrompt, templateId, configId);
+            String result = aiService.generateCharacterInfo(null, userPrompt, templateId, configId,bookId);
             return ApiResponse.success("角色信息生成成功", result);
         } catch (Exception e) {
             logger.error("生成角色信息失败", e);
@@ -474,14 +477,15 @@ public class NovelController {
     public SseEmitter generateNewCharacterStream(
             @RequestParam String userPrompt,
             @RequestParam(required = false) Long templateId,
-            @RequestParam(required = false) Long configId) {
+            @RequestParam(required = false) Long configId,
+            @RequestParam(required = false) Long bookId) {
         logger.info("收到流式生成新角色请求");
         SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
         
         // 异步执行流式生成
         new Thread(() -> {
             try {
-                aiService.generateCharacterInfoStream(null, userPrompt, templateId, configId, emitter);
+                aiService.generateCharacterInfoStream(null, userPrompt, templateId, configId, emitter,bookId);
             } catch (Exception e) {
                 logger.error("流式生成新角色失败", e);
                 try {

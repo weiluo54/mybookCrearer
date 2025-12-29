@@ -54,7 +54,7 @@ public class SummaryCollectionService {
     public SummaryCollection createCollection(SummaryCollection collection) {
         // 自动设置序号
         if (collection.getCollectionOrder() == null || collection.getCollectionOrder() == 0) {
-            Integer maxOrder = summaryCollectionRepository.findMaxCollectionOrder();
+            Integer maxOrder = summaryCollectionRepository.findMaxCollectionOrderByBookId(collection.getBookId());
             collection.setCollectionOrder(maxOrder + 1);
         }
         collection.setCreateTime(LocalDateTime.now());
@@ -70,7 +70,7 @@ public class SummaryCollectionService {
      * @return 保存后的汇总
      */
     @Transactional
-    public SummaryCollection createCollection(String title, String content, String chapterRange) {
+    public SummaryCollection createCollection(String title, String content, String chapterRange,Long bookId) {
         SummaryCollection collection = new SummaryCollection();
         collection.setTitle(title);
         collection.setContent(content);

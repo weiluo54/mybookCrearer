@@ -978,7 +978,7 @@ function setDefaultConfig(id) {
         url: '/api/configs/' + id,
         type: 'PUT',
         contentType: 'application/json',
-        data: JSON.stringify({ isDefault: true }),
+        data: JSON.stringify({ isDefault: true}),
         success: function(res) {
             if (res.code === 200) {
                 showToast('已设为默认配置', 'success');

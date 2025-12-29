@@ -221,8 +221,8 @@ public class ChapterService {
      * @param count 数量
      * @return 概括列表字符串
      */
-    public String getRecentSummaries(int count) {
-        List<Chapter> chapters = chapterRepository.findAllByOrderByChapterOrderAsc();
+    public String getRecentSummaries(int count,Long bookId) {
+        List<Chapter> chapters = chapterRepository.findByBookIdOrderByChapterOrderAsc(bookId);
         StringBuilder sb = new StringBuilder();
         int start = Math.max(0, chapters.size() - count);
         for (int i = start; i < chapters.size(); i++) {

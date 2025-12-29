@@ -187,7 +187,7 @@ public class AIService {
         prompt = prompt.replace("{{chapterOrder}}", String.valueOf(chapter.getChapterOrder()));
         
         // 替换历史概括
-        String prevSummary = chapterService.getRecentSummaries(5);
+        String prevSummary = chapterService.getRecentSummaries(5,chapter.getBookId());
         prompt = prompt.replace("{{prevSummary}}", prevSummary);
         
         // 替换角色信息
@@ -332,8 +332,8 @@ public class AIService {
      * @return 生成的角色信息描述
      */
     @Transactional
-    public String generateCharacterInfo(Long characterId, String userPrompt) {
-        return generateCharacterInfo(characterId, userPrompt, null, null);
+    public String generateCharacterInfo(Long characterId, String userPrompt,Long bookId) {
+        return generateCharacterInfo(characterId, userPrompt, null, null,bookId);
     }
 
     /**
@@ -346,7 +346,7 @@ public class AIService {
      * @return 生成的角色信息JSON字符串
      */
     @Transactional
-    public String generateCharacterInfo(Long characterId, String userPrompt, Long templateId, Long configId) {
+    public String generateCharacterInfo(Long characterId, String userPrompt, Long templateId, Long configId, Long bookId) {
         logger.info("开始AI生成角色信息，角色ID: {}, 模板ID: {}, 配置ID: {}", characterId, templateId, configId);
         
         // 获取配置和模板
@@ -359,7 +359,7 @@ public class AIService {
         
         // 构建提示词
         String systemPrompt = template.getSystemPrompt();
-        String promptText = buildCharacterPrompt(template.getPromptTemplate(), characterId, userPrompt);
+        String promptText = buildCharacterPrompt(template.getPromptTemplate(), characterId, userPrompt,bookId);
         
         // 调用AI
         String aiResponse = callAIApi(config, systemPrompt, promptText);
@@ -373,7 +373,7 @@ public class AIService {
      * 构建角色生成提示词
      * 支持变量: {{userPrompt}}, {{characterName}}, {{characterInfo}}, {{existingCharacters}}, {{recentSummary}}
      */
-    private String buildCharacterPrompt(String promptTemplate, Long characterId, String userPrompt) {
+    private String buildCharacterPrompt(String promptTemplate, Long characterId, String userPrompt,Long bookId) {
         String prompt = promptTemplate;
         
         // 替换用户提示词
@@ -395,7 +395,7 @@ public class AIService {
         prompt = prompt.replace("{{existingCharacters}}", existingChars);
         
         // 替换最近章节概括（提供故事背景）
-        String recentSummary = chapterService.getRecentSummaries(3);
+        String recentSummary = chapterService.getRecentSummaries(3,bookId);
         prompt = prompt.replace("{{recentSummary}}", recentSummary);
         
         // 清理未使用的变量
@@ -486,7 +486,7 @@ public class AIService {
         // 替换历史章节概括
         if (request.getIncludeHistory() != null && request.getIncludeHistory()) {
             int count = request.getHistoryCount() != null ? request.getHistoryCount() : 5;
-            String summaries = chapterService.getRecentSummaries(count);
+            String summaries = chapterService.getRecentSummaries(count,request.getBookId());
             promptText = promptText.replace("{{prevSummary}}", summaries);
         } else {
             promptText = promptText.replace("{{prevSummary}}", "");
@@ -1137,7 +1137,7 @@ public class AIService {
      * @param configId 配置ID（可选）
      * @param emitter SSE发射器
      */
-    public void generateCharacterInfoStream(Long characterId, String userPrompt, Long templateId, Long configId, SseEmitter emitter) {
+    public void generateCharacterInfoStream(Long characterId, String userPrompt, Long templateId, Long configId, SseEmitter emitter,Long bookId) {
         logger.info("开始流式AI生成角色信息，角色ID: {}", characterId);
         
         try {
@@ -1151,7 +1151,7 @@ public class AIService {
             
             // 构建提示词
             String systemPrompt = template.getSystemPrompt();
-            String promptText = buildCharacterPrompt(template.getPromptTemplate(), characterId, userPrompt);
+            String promptText = buildCharacterPrompt(template.getPromptTemplate(), characterId, userPrompt,bookId);
             
             // 调用流式AI
             callAIApiStream(config, systemPrompt, promptText, emitter);
